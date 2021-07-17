@@ -1,5 +1,6 @@
 /*
   Jeremy Fonseca | 16.07.21 | ExpirationDate
+  Source: https://github.com/jeremy06-1/ExpirationDate.git
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,9 +27,10 @@ struct Product {
 	ExpirationDate productExpirationDate;
 };
 
+#include "lib/remaining_days.h"
+
 // Function prototype declarations
-void readProductData(struct Product *infoProd), printProducts(struct Product);
-int expirationTime(struct Product prod);
+void readProductData(struct Product *), printProducts(struct Product);
 
 int main(void) {
 	short int productsNumber, counter;
@@ -55,14 +57,14 @@ int main(void) {
 	// Get data
 	for (counter = 0; counter < productsNumber; ++counter) {
 		clearScreen();
-		printf("P[%hi]\n", (counter + 1));
+		printf("CURRENT DATE: %i/%i/%i\n", currentDay, currentMonth, currentYear);
+		printf("Product [%hi]\n", (counter + 1));
 		readProductData(&productsVector[counter]);
 	}
 	
 	// Print data
 	clearScreen();
-	
-	printf("[CURRENT DATE: %i/%i/%i]\n", currentDay, currentMonth, currentYear);
+	printf("CURRENT DATE: %i/%i/%i\n", currentDay, currentMonth, currentYear);
 	puts("~~~~~~~~~~~~   ~~~~~~~~~~~~~~~     ~~~~~~~~~~~~~~");
 	puts("PRODUCT NAME   EXPIRATION DATE     RAMAINING DAYS");
 	puts("~~~~~~~~~~~~   ~~~~~~~~~~~~~~~     ~~~~~~~~~~~~~~");
@@ -70,46 +72,81 @@ int main(void) {
 		printProducts(productsVector[counter]);
 	}
 	
-	/*printf("El producto se vence dentro de %d días",caduca);*/
-	
 	return 0;
 }
 
 void readProductData(struct Product *infoProd) {
-	
-	printf("Product name: ");
+	printf("Name: ");
 	scanf("%s", (*infoProd).productName);
 	
 	do {
-		printf("Product amount: ");
+		printf("Amount: ");
 		scanf("%d", &(*infoProd).productAmount);
 		if ((*infoProd).productAmount < 0) printf("Error: Negative number.\n");
 	} while((*infoProd).productAmount < 0);
 	
 	do {
-		printf("Expiration date (dd mm yyyy): ");
-		scanf("%d %d %d", &(*infoProd).productExpirationDate.day, &(*infoProd).productExpirationDate.month, &(*infoProd).productExpirationDate.year);
+		printf("Expiration Date (dd mm yyyy): ");
+		scanf("%d %d %d", \
+		&(*infoProd).productExpirationDate.day, \
+		&(*infoProd).productExpirationDate.month, \
+		&(*infoProd).productExpirationDate.year);
 		
-		if ((*infoProd).productExpirationDate.day < 0 ||
-			(*infoProd).productExpirationDate.month < 0 ||
-			(*infoProd).productExpirationDate.month > 12 ||
-			(*infoProd).productExpirationDate.year < 0) {
+		if ((*infoProd).productExpirationDate.day < 0 || \
+			((*infoProd).productExpirationDate.day > getMonthDays((*infoProd).productExpirationDate.month, \
+			(*infoProd).productExpirationDate.year)) || \
+			(*infoProd).productExpirationDate.month < 0 || \
+			(*infoProd).productExpirationDate.month > 12 || \
+			(*infoProd).productExpirationDate.year < 1900) {
 			printf("Error: Invalid date.\n");
 		}
 		
-	} while ((*infoProd).productExpirationDate.day < 0 ||
-		(*infoProd).productExpirationDate.month < 0 ||
-		(*infoProd).productExpirationDate.month > 12 ||
-		(*infoProd).productExpirationDate.year < 0);
+	} while ((*infoProd).productExpirationDate.day < 0 || \
+		(*infoProd).productExpirationDate.month < 0 || \
+		((*infoProd).productExpirationDate.day > getMonthDays((*infoProd).productExpirationDate.month, \
+		(*infoProd).productExpirationDate.year)) || \
+		(*infoProd).productExpirationDate.month > 12 || \
+		(*infoProd).productExpirationDate.year < 1900);
 	return;
 }
 
 void printProducts(struct Product product) {
-	printf("%-15s%i/%i/%-16i%i\n",
-		   product.productName,
-		   product.productExpirationDate.day,
-		   product.productExpirationDate.month,
-		   product.productExpirationDate.year,
-		   10);
+	char *productName;
+	int currentMonth, currentYear, currentDay, expirationDay, expirationMonth, expirationYear;
+	time_t now;
+	struct tm *currentTime;
+	
+	now = time(NULL);
+	currentTime = localtime(&now);
+	
+	currentDay = (*currentTime).tm_mday;
+	currentMonth = (*currentTime).tm_mon + 1;
+	currentYear = (*currentTime).tm_year + 1900;
+	
+	productName = product.productName;
+	expirationDay = product.productExpirationDate.day;
+	expirationMonth = product.productExpirationDate.month;
+	expirationYear = product.productExpirationDate.year;
+	
+	if ((expirationYear < currentYear) || \
+		((currentDay > expirationDay) && \
+		(currentMonth == expirationMonth && \
+		(currentYear == expirationYear))) || \
+		((expirationMonth < currentMonth) && \
+		(expirationYear == currentYear)) ) {
+		printf("%-15s%i/%i/%-16i%s\n", \
+		productName, \
+		expirationDay, \
+		expirationMonth, \
+		expirationYear, \
+		"EXPIRED");
+	} else {
+		printf("%-15s%i/%i/%-16i%i\n", \
+		productName, \
+		expirationDay, \
+		expirationMonth, \
+		expirationYear, \
+		getRemainingDays(product));
+	}
+	return;
 }
-
